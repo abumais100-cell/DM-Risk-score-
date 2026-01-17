@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ramadan DM Risk Calculator (IDF-DAR 2021)</title>
+  <style>
+    :root { --bg:#f4f7fb; --card:#fff; --ink:#0f172a; --muted:#475569; --brand:#0f766e; --line:#e2e8f0; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Arial, Helvetica, sans-serif; background:var(--bg); color:var(--ink); }
+    .wrap { max-width: 980px; margin: 18px auto; padding: 14px; }
+    .header {
+      display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;
+    }
+    .title { font-size: 20px; font-weight: 800; }
+    .sub { color:var(--muted); font-size: 13px; margin-top: 4px; }
+    .grid { display:grid; grid-template-columns: 1fr; gap: 12px; }
+    @media(min-width: 900px){ .grid { grid-template-columns: 1.2fr 0.8fr; } }
+    .card { background:var(--card); border:1px solid var(--line); border-radius: 14px; padding: 14px; box-shadow: 0 6px 18px rgba(15,23,42,.06); }
+    .sectionTitle { font-weight: 800; margin: 6px 0 10px; }
+    .row { display:grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 10px; }
+    @media(min-width: 700px){ .row { grid-template-columns: 1fr 1fr; } }
+    label { font-size: 13px; color: var(--muted); display:block; margin-bottom: 5px; }
+    select, input[type="number"] {
+      width:100%; padding: 10px 11px; border:1px solid var(--line); border-radius: 10px; background:#fff; font-size: 14px;
+    }
+    .checks { display:grid; grid-template-columns: 1fr; gap: 8px; border:1px dashed var(--line); border-radius: 12px; padding: 10px; background:#fbfdff; }
+    @media(min-width: 700px){ .checks { grid-template-columns: 1fr 1fr; } }
+    .chk { display:flex; align-items:center; gap:8px; font-size: 14px; }
+    .chk input { transform: scale(1.1); }
+    .btns { display:flex; gap:10px; flex-wrap: wrap; margin-top: 10px; }
+    button {
+      border:0; border-radius: 12px; padding: 12px 14px; font-weight: 800;
+      cursor:pointer; font-size: 14px;
+    }
+    .primary { background: var(--brand); color: #fff; }
+    .ghost { background: #eef2ff; color: #1e293b; }
+    .note { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .resultBox { border:1px solid var(--line); border-radius: 14px; padding: 14px; background:#ffffff; }
+    .scoreBig { font-size: 36px; font-weight: 900; margin: 4px 0; }
+    .badge { display:inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 800; font-size: 12px; }
+    .low { background:#dcfce7; color:#14532d; }
+    .mod { background:#fef9c3; color:#713f12; }
+    .high{ background:#fee2e2; color:#7f1d1d; }
+    .smallTable { width:100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    .smallTable th, .smallTable td { border-top:1px solid var(--line); padding: 8px; text-align:left; vertical-align: top; }
+    .smallTable th { color:var(--muted); font-weight: 800; width: 60%; }
+    .warn { background:#fff7ed; border:1px solid #fed7aa; padding:10px; border-radius: 12px; color:#7c2d12; font-size: 12px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div>
+        <div class="title">Ramadan DM Risk Calculator</div>
+        <div class="sub">Based on IDF-DAR 2021 risk score elements (table in your screenshot)</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- FORM -->
+      <div class="card">
+        <div class="sectionTitle">Inputs</div>
+
+        <div class="row">
+          <div>
+            <label>1) Diabetes type</label>
+            <select id="diabetesType">
+              <option value="T1">Type 1 diabetes (score 1)</option>
+              <option value="T2" selected>Type 2 diabetes (score 0)</option>
+            </select>
+          </div>
+
+          <div>
+            <label>2) Duration of diabetes</label>
+            <select id="duration">
+              <option value="lt10" selected>&lt; 10 years (score 0)</option>
+              <option value="ge10">≥ 10 years (score 1)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>3) Presence of hypoglycaemia</label>
+            <select id="hypo">
+              <option value="none" selected>No hypoglycaemia (0)</option>
+              <option value="lt1wk">Less than 1 time/week (1)</option>
+              <option value="multiWeekly">Multiple weekly hypoglycaemia (3.5)</option>
+              <option value="recentSevere">Recent severe hypoglycaemia (5.5)</option>
+              <option value="unaware">Hypoglycaemia unawareness (6.5)</option>
+            </select>
+          </div>
+
+          <div>
+            <label>4) Level of glycaemic control (HbA1c)</label>
+            <select id="hba1c">
+              <option value="lt7_5" selected>&lt; 7.5% (59.4 mmol/mol) (0)</option>
+              <option value="7_5_9">7.5–9% (59.4–74.1) (1)</option>
+              <option value="gt9">&gt; 9% (≥ 11.7 mmol/L in table) (2)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div style="grid-column: 1 / -1;">
+            <label>5) Type of treatment (select all that apply)</label>
+            <div class="checks" id="treatmentChecks">
+              <div class="chk"><input type="checkbox" value="mdi" /> Multiple daily insulin injections (3)</div>
+              <div class="chk"><input type="checkbox" value="basalBolusPump" /> Basal-bolus / insulin pump (2.5)</div>
+              <div class="chk"><input type="checkbox" value="onceDailyMixed" /> Once daily mixed insulin (2)</div>
+              <div class="chk"><input type="checkbox" value="basalInsulin" /> Basal insulin (1.5)</div>
+              <div class="chk"><input type="checkbox" value="glibenclamide" /> Glibenclamide (1)</div>
+              <div class="chk"><input type="checkbox" value="otherSU" /> Gliclazide MR / Glimepiride / Repaglinide (0.5)</div>
+              <div class="chk"><input type="checkbox" value="otherNoSUIns" checked /> Other therapy (not including SU or insulin) (0)</div>
+            </div>
+            <div class="note" style="margin-top:6px;">
+              ملاحظة: لو اخترت “Other therapy (0)” مع أي خيار آخر، سيتم تجاهلها تلقائياً.
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>6) Self-monitoring of blood glucose (SMBG)</label>
+            <select id="smbg">
+              <option value="asIndicated" selected>Conducted as indicated (0)</option>
+              <option value="suboptimal">Indicated but conducted sub-optimally (1)</option>
+              <option value="notConducted">Indicated but not conducted (2)</option>
+            </select>
+          </div>
+
+          <div>
+            <label>7) Acute complications</label>
+            <select id="acute">
+              <option value="none" selected>No DKA or HONC (0)</option>
+              <option value="last12">DKA/HONC in last 12 months (1)</option>
+              <option value="last6">DKA/HONC in last 6 months (2)</option>
+              <option value="last3">DKA/HONC in last 3 months (3)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>8) Macrovascular disease (MVD)</label>
+            <select id="mvd">
+              <option value="none" selected>No MVD (0)</option>
+              <option value="stable">Stable MVD (2)</option>
+              <option value="unstable">Unstable MVD (6.5)</option>
+            </select>
+          </div>
+
+          <div>
+            <label>9) Renal complications (eGFR)</label>
+            <select id="egfr">
+              <option value="gt60" selected>eGFR &gt; 60 mL/min (0)</option>
+              <option value="45_60">eGFR 45–60 mL/min (2)</option>
+              <option value="30_45">eGFR 30–45 mL/min (4)</option>
+              <option value="lt30">eGFR &lt; 30 mL/min (6.5)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>10) Pregnancy</label>
+            <select id="pregnancy">
+              <option value="notPregnant" selected>Not pregnant (0)</option>
+              <option value="withinTargets">Pregnant within targets (3.5)</option>
+              <option value="notWithinTargets">Pregnant not within targets (6.5)</option>
+            </select>
+          </div>
+
+          <div>
+            <label>11) Frailty & cognitive function</label>
+            <select id="frailty">
+              <option value="none" selected>No frailty or loss in cognitive function (0)</option>
+              <option value="ageNoSupport">&gt; 70 years old with no home support (3.5)</option>
+              <option value="impaired">Impaired cognitive function or frail (6.5)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>12) Physical labour</label>
+            <select id="labour">
+              <option value="none" selected>No physical labour (0)</option>
+              <option value="moderate">Moderate intensity physical labour (2)</option>
+              <option value="high">High intensity physical labour (4)</option>
+            </select>
+          </div>
+
+          <div>
+            <label>13) Previous Ramadan experience</label>
+            <select id="experience">
+              <option value="noIssue" selected>No negative or positive experience (0)</option>
+              <option value="overallNegative">Overall negative experience (1)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>14) Fasting hours (location)</label>
+            <select id="fastHours">
+              <option value="lt16" selected>&lt; 16 hours (0)</option>
+              <option value="ge16">≥ 16 hours (1)</option>
+            </select>
+          </div>
+          <div></div>
+        </div>
+
+        <div class="btns">
+          <button class="primary" id="calcBtn" type="button">Calculate Risk</button>
+          <button class="ghost" id="resetBtn" type="button">Reset</button>
+        </div>
+
+        <div class="warn">
+                  </div>
+      </div>
+
+      <!-- RESULTS -->
+      <div class="card">
+        <div class="sectionTitle">Result</div>
+        <div class="resultBox">
+          <div class="note">Total risk score</div>
+          <div class="scoreBig" id="scoreBig">0</div>
+          <div id="riskBadge" class="badge low">LOW RISK</div>
+          <div class="note" style="margin-top:10px;">
+            Categories (from the figure):<br/>
+            <b>0–3</b> Low &nbsp; | &nbsp; <b>3.5–6</b> Moderate &nbsp; | &nbsp; <b>&gt; 6</b> High
+          </div>
+
+          <table class="smallTable" aria-label="Breakdown table">
+            <thead>
+              <tr><th>Item</th><th>Score</th></tr>
+            </thead>
+            <tbody id="breakdown"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // --- scoring maps (as per the table screenshot) ---
+  const MAP = {
+    diabetesType: { T1: 1, T2: 0 },
+    duration: { lt10: 0, ge10: 1 },
+    hypo: { none: 0, lt1wk: 1, multiWeekly: 3.5, recentSevere: 5.5, unaware: 6.5 },
+    hba1c: { lt7_5: 0, "7_5_9": 1, gt9: 2 },
+    smbg: { asIndicated: 0, suboptimal: 1, notConducted: 2 },
+    acute: { none: 0, last12: 1, last6: 2, last3: 3 },
+    mvd: { none: 0, stable: 2, unstable: 6.5 },
+    egfr: { gt60: 0, "45_60": 2, "30_45": 4, lt30: 6.5 },
+    pregnancy: { notPregnant: 0, withinTargets: 3.5, notWithinTargets: 6.5 },
+    frailty: { none: 0, ageNoSupport: 3.5, impaired: 6.5 },
+    labour: { none: 0, moderate: 2, high: 4 },
+    experience: { noIssue: 0, overallNegative: 1 },
+    fastHours: { lt16: 0, ge16: 1 },
+    treatment: {
+      mdi: 3,
+      basalBolusPump: 2.5,
+      onceDailyMixed: 2,
+      basalInsulin: 1.5,
+      glibenclamide: 1,
+      otherSU: 0.5,
+      otherNoSUIns: 0
+    }
+  };
+
+  const ids = [
+    "diabetesType","duration","hypo","hba1c","smbg","acute","mvd","egfr","pregnancy","frailty","labour","experience","fastHours"
+  ];
+
+  const LABELS = {
+    diabetesType: "Diabetes type",
+    duration: "Duration of diabetes",
+    hypo: "Hypoglycaemia",
+    hba1c: "HbA1c",
+    treatment: "Treatment (highest selected)",
+    smbg: "SMBG",
+    acute: "Acute complications",
+    mvd: "Macrovascular disease",
+    egfr: "Renal (eGFR)",
+    pregnancy: "Pregnancy",
+    frailty: "Frailty/cognitive",
+    labour: "Physical labour",
+    experience: "Previous Ramadan experience",
+    fastHours: "Fasting hours"
+  };
+
+  function getSelectValue(id){ return document.getElementById(id).value; }
+
+  function getTreatmentScore(){
+    const checks = Array.from(document.querySelectorAll('#treatmentChecks input[type="checkbox"]'));
+    const selected = checks.filter(c => c.checked).map(c => c.value);
+
+    // if user selected "otherNoSUIns" AND something else, ignore otherNoSUIns
+    const cleaned = selected.filter(v => !(v === "otherNoSUIns" && selected.length > 1));
+
+    // If nothing selected, assume 0 (safe default)
+    if (cleaned.length === 0) return { score: 0, chosen: "None" };
+
+    // Table logic usually uses the relevant treatment risk; here we take MAX score among chosen
+    let maxScore = -Infinity;
+    let chosenKey = cleaned[0];
+    cleaned.forEach(k => {
+      const s = MAP.treatment[k] ?? 0;
+      if (s > maxScore) { maxScore = s; chosenKey = k; }
+    });
+
+    const nice = {
+      mdi: "Multiple daily insulin injections",
+      basalBolusPump: "Basal-bolus / pump",
+      onceDailyMixed: "Once daily mixed insulin",
+      basalInsulin: "Basal insulin",
+      glibenclamide: "Glibenclamide",
+      otherSU: "Gliclazide MR / Glimepiride / Repaglinide",
+      otherNoSUIns: "Other therapy (no SU/insulin)"
+    };
+
+    return { score: maxScore, chosen: nice[chosenKey] || chosenKey };
+  }
+
+  function categorize(total){
+    if (total <= 3) return { txt: "LOW RISK", cls: "low" };
+    if (total <= 6) return { txt: "MODERATE RISK", cls: "mod" };
+    return { txt: "HIGH RISK", cls: "high" };
+  }
+
+  function renderBreakdown(items){
+    const tbody = document.getElementById("breakdown");
+    tbody.innerHTML = "";
+    items.forEach(it => {
+      const tr = document.createElement("tr");
+      const th = document.createElement("th");
+      const td = document.createElement("td");
+      th.textContent = it.label + (it.detail ? ` — ${it.detail}` : "");
+      td.textContent = it.score;
+      tr.appendChild(th);
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    });
+  }
+
+  function calculate(){
+    const breakdown = [];
+    let total = 0;
+
+    ids.forEach(id => {
+      const val = getSelectValue(id);
+      const score = MAP[id][val] ?? 0;
+      total += score;
+      // show selected text as detail:
+      const detail = document.querySelector(`#${id} option[value="${val}"]`)?.textContent || "";
+      breakdown.push({ label: LABELS[id], score, detail });
+    });
+
+    // treatment (checkboxes): take highest selected
+    const t = getTreatmentScore();
+    total += t.score;
+    breakdown.splice(4, 0, { label: LABELS.treatment, score: t.score, detail: t.chosen }); // after HbA1c
+
+    // Update UI
+    document.getElementById("scoreBig").textContent = (Math.round(total * 10) / 10).toString();
+
+    const cat = categorize(total);
+    const badge = document.getElementById("riskBadge");
+    badge.textContent = cat.txt;
+    badge.className = "badge " + cat.cls;
+
+    renderBreakdown(breakdown);
+  }
+
+  function resetAll(){
+    // reset selects
+    document.getElementById("diabetesType").value = "T2";
+    document.getElementById("duration").value = "lt10";
+    document.getElementById("hypo").value = "none";
+    document.getElementById("hba1c").value = "lt7_5";
+    document.getElementById("smbg").value = "asIndicated";
+    document.getElementById("acute").value = "none";
+    document.getElementById("mvd").value = "none";
+    document.getElementById("egfr").value = "gt60";
+    document.getElementById("pregnancy").value = "notPregnant";
+    document.getElementById("frailty").value = "none";
+    document.getElementById("labour").value = "none";
+    document.getElementById("experience").value = "noIssue";
+    document.getElementById("fastHours").value = "lt16";
+
+    // reset treatment checks
+    const checks = Array.from(document.querySelectorAll('#treatmentChecks input[type="checkbox"]'));
+    checks.forEach(c => c.checked = false);
+    // default "other therapy" checked
+    const other = checks.find(c => c.value === "otherNoSUIns");
+    if (other) other.checked = true;
+
+    // reset result
+    document.getElementById("scoreBig").textContent = "0";
+    const badge = document.getElementById("riskBadge");
+    badge.textContent = "LOW RISK";
+    badge.className = "badge low";
+    document.getElementById("breakdown").innerHTML = "";
+  }
+
+  // ensure "other therapy" doesn't block other options (auto-uncheck when others selected)
+  document.getElementById("treatmentChecks").addEventListener("change", (e) => {
+    const checks = Array.from(document.querySelectorAll('#treatmentChecks input[type="checkbox"]'));
+    const other = checks.find(c => c.value === "otherNoSUIns");
+    const othersSelected = checks.some(c => c.checked && c.value !== "otherNoSUIns");
+    if (other && othersSelected) other.checked = false;
+    if (other && !othersSelected && !checks.some(c => c.checked)) other.checked = true;
+  });
+
+  document.getElementById("calcBtn").addEventListener("click", calculate);
+  document.getElementById("resetBtn").addEventListener("click", resetAll);
+
+  // first render (optional)
+  resetAll();
+</script>
+</body>
+</html>
